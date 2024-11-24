@@ -1,6 +1,6 @@
 import asyncio
-from bot_i import bot, dp, scheduler
-from handlers.start import start_router
+from bot_i import bot, dp
+from handlers import start_router
 
 
 async def main():
