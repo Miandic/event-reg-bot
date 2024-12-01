@@ -2,8 +2,20 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from keyboards import *
+from sqlalchemy import Integer, String
+from bot_i import bot, admins, pg_manager
 
 start_router = Router()
+
+
+async def create_table_questions(table_name='questions_reg'):
+    async with pg_manager:
+        columns = [
+            {"name": "id", "type": Integer, "options": {"primary_key": True, "autoincrement": True}},
+            {"name": "team", "type": String},
+            {"name": "name", "type": String},
+            {"name": "team-id", "type": String}]
+        await pg_manager.create_table(table_name=table_name, columns=columns)
 
 
 @start_router.message(CommandStart())
