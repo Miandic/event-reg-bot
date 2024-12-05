@@ -16,13 +16,3 @@ logger = logging.getLogger(__name__)
 
 bot = Bot(token=config('TOKEN'), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
-
-def is_team_full(team_id):
-    status = False
-    #Request database and count team members
-    return status
-
-def user_in_team(user_id, team_id):
-    status = False
-    #Request database and check team members
-    return status

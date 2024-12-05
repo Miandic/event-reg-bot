@@ -12,14 +12,14 @@ async def create_table_team(table_name='members_ny'):
     async with pg_manager:
         columns = [
             {"name": "id", "type": Integer, "options": {"primary_key": True, "autoincrement": True}},
-            {"name": "team", "type": String},
-            {"name": "name", "type": String},
+            {"name": "team", "type": Integer},
+            {"name": "username", "type": String},
             {"name": "booked_by", "type": String},
             {"name": "time", "type": TIMESTAMP}]
         await pg_manager.create_table(table_name=table_name, columns=columns)
 
 
-async def insert_table_team_member(team: str, username: str, reserve: int, table_name='members_ny') -> int:
+async def insert_table_team_member(team: int, username: str, reserve: int, table_name='members_ny') -> int:
     async with pg_manager:
         data = await pg_manager.select_data(table_name, where_dict={'username': username})
         for i in data:
@@ -38,11 +38,28 @@ async def insert_table_team_member(team: str, username: str, reserve: int, table
         await pg_manager.insert_data_with_update(table_name=table_name, records_data=user_info, conflict_column='id', update_on_conflict=True)
 
 
-async def get_table_team_member(team: str, table_name='members_ny'):
+async def get_table_team_member(team: int, table_name='members_ny'):
     async with pg_manager:
         data = await pg_manager.select_data(table_name, where_dict={'team': team})
         return data
+    
+    
+async def is_team_full(team_id):
+    team = get_table_team_member(team_id)
+    total = 0
+    for member in team:
+        total += 1
+    if total < 8:
+        return False
+    return True
 
+
+async def user_in_team(username, team_id):
+    team = get_table_team_member(team_id)
+    for member in team:
+        if member.get('username') == username:
+            return True
+    return False
 
 
 @start_router.message(CommandStart())
@@ -58,8 +75,17 @@ async def cmd_start(call: CallbackQuery):
 @start_router.callback_query(F.data.startswith('show_team_'))
 async def show_team(call: CallbackQuery):
     team_id = int(call.data.replace('show_team_', ''))
-    formatted_message = 'Места:\n\nЗанято: 0\nСвободно:9\nНа удержании:1'
+    team = get_table_team_member(team_id)
+    occ = 0
+    hold = 0
+    for member in team:
+        if member.get('booked_by') == 'None':
+            occ += 1
+        else:
+            hold += 1
 
+    formatted_message = 'Места: 8\n\nЗанято: ' + str(occ) + '\nНа удержании: ' + str(hold)
+    
     await call.message.edit_text(formatted_message, reply_markup=team_kb(call.from_user.id, team_id))
 
 
