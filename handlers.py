@@ -2,20 +2,27 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery
 from keyboards import *
-from sqlalchemy import Integer, String, Boolean, TIMESTAMP
-from bot_i import bot, admins, pg_manager
+from sqlalchemy import Integer, String, Boolean, DateTime
+from bot_i import bot, dp, admins, banned, pg_manager
 
-start_router = Router()
+router = Router()
 
 
-async def create_table_team(table_name='members_ny'):
+start_text = 'Привет!\nЭто бот для регистрации на новогодний квест 11 общежития'
+
+ban_text = 'Ты в бане! По вопросам разбана пиши администратору :p'
+
+
+async def create_table(table_name='users_ny'):
     async with pg_manager:
         columns = [
             {"name": "id", "type": Integer, "options": {"primary_key": True, "autoincrement": True}},
-            {"name": "team", "type": Integer},
+            {"name": "team_id", "type": Integer},
+            {"name": "name", "type": String},
             {"name": "username", "type": String},
-            {"name": "booked_by", "type": String},
-            {"name": "time", "type": TIMESTAMP}]
+            {"name": "status", "type": String},
+            {"name": "date", "type": DateTime, "options": {"default": 'getdate()'}},
+            {"name": "time", "type": Integer}]
         await pg_manager.create_table(table_name=table_name, columns=columns)
 
 
@@ -62,17 +69,31 @@ async def user_in_team(username, team_id):
     return False
 
 
-@start_router.message(CommandStart())
+@router.message()
 async def cmd_start(message: Message):
-    await message.answer('Привет!\n\nВыбирай команду, к какое хочешь присоедениться и вперёд!\nПосмотреть состав команды можно, нажав на неё. С друзьями веселее!', reply_markup=start_kb(message.from_user.id))
+    if message.from_user.id in banned:
+        await message.answer(ban_text, reply_markup=None)
 
 
-@start_router.callback_query(F.data == 'Home')
+@router.message(CommandStart())
+async def cmd_start(message: Message):
+    ans = start_text
+    if message.from_user.id in banned:
+        await message.answer(ban_text, reply_markup=None)
+    if user_in_team(message.from_user.id, 0):
+        ans += 'Ты уже в команде'
+    await message.answer(ans, reply_markup=start_kb(message.from_user.id))
+
+
+@router.callback_query(F.data == 'Home')
 async def cmd_start(call: CallbackQuery):
-    await call.message.edit_text('Привет!\n\nВыбирай команду, к какое хочешь присоедениться и вперёд!\nПосмотреть состав команды можно, нажав на неё. С друзьями веселее!', reply_markup=start_kb(call.from_user.id))
+    if call.from_user.id in banned:
+        await call.message.edit_text(ban_text, reply_markup=None)
+
+    await call.message.edit_text(start_text, reply_markup=start_kb(call.from_user.id))
 
 
-@start_router.callback_query(F.data.startswith('show_team_'))
+@router.callback_query(F.data.startswith('show_team_'))
 async def show_team(call: CallbackQuery):
     team_id = int(call.data.replace('show_team_', ''))
     team = get_table_team_member(team_id)
@@ -89,6 +110,6 @@ async def show_team(call: CallbackQuery):
     await call.message.edit_text(formatted_message, reply_markup=team_kb(call.from_user.id, team_id))
 
 
-@start_router.callback_query(F.data == 'Admin')
+@router.callback_query(F.data == 'Admin')
 async def admin(call: CallbackQuery):
     await call.message.edit_text('Я получил власть, которая и не снилась моему отцу!', reply_markup=admin_kb())

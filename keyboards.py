@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from bot_i import admins, banned, is_team_full, user_in_team
+from bot_i import admins, banned
 
 def start_kb(user_telegram_id: int):
     kb_list = []
