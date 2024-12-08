@@ -5,7 +5,7 @@ from keyboards import *
 from sqlalchemy import Integer, String, Boolean, DateTime
 from bot_i import bot, dp, admins, banned, pg_manager
 
-router = Router()
+router_handler = Router()
 
 
 start_text = 'Привет!\nЭто бот для регистрации на новогодний квест 11 общежития'
@@ -21,8 +21,7 @@ async def create_table(table_name='users_ny'):
             {"name": "name", "type": String},
             {"name": "username", "type": String},
             {"name": "status", "type": String},
-            {"name": "date", "type": DateTime, "options": {"default": 'getdate()'}},
-            {"name": "time", "type": Integer}]
+            {"name": "date", "type": String}]
         await pg_manager.create_table(table_name=table_name, columns=columns)
 
 
@@ -45,58 +44,53 @@ async def insert_table_team_member(team: int, username: str, reserve: int, table
         await pg_manager.insert_data_with_update(table_name=table_name, records_data=user_info, conflict_column='id', update_on_conflict=True)
 
 
-async def get_table_team_member(team: int, table_name='members_ny'):
+async def get_table_team(team: int, table_name='members_ny'):
     async with pg_manager:
         data = await pg_manager.select_data(table_name, where_dict={'team': team})
         return data
     
     
 async def is_team_full(team_id):
-    team = get_table_team_member(team_id)
+    team = get_table_team(team_id)
     total = 0
     for member in team:
         total += 1
-    if total < 8:
+    if total < 8:   
         return False
     return True
 
 
 async def user_in_team(username, team_id):
-    team = get_table_team_member(team_id)
+    team = get_table_team(team_id)
     for member in team:
         if member.get('username') == username:
             return True
     return False
 
 
-@router.message()
-async def cmd_start(message: Message):
-    if message.from_user.id in banned:
-        await message.answer(ban_text, reply_markup=None)
-
-
-@router.message(CommandStart())
+@router_handler.message(CommandStart())
 async def cmd_start(message: Message):
     ans = start_text
     if message.from_user.id in banned:
         await message.answer(ban_text, reply_markup=None)
+    
     if user_in_team(message.from_user.id, 0):
         ans += 'Ты уже в команде'
-    await message.answer(ans, reply_markup=start_kb(message.from_user.id))
+    await message.answer(ans, reply_markup=start_kb(message.from_user.id, 10))
 
 
-@router.callback_query(F.data == 'Home')
+@router_handler.callback_query(F.data == 'Home')
 async def cmd_start(call: CallbackQuery):
     if call.from_user.id in banned:
         await call.message.edit_text(ban_text, reply_markup=None)
 
-    await call.message.edit_text(start_text, reply_markup=start_kb(call.from_user.id))
+    await call.message.edit_text(start_text, reply_markup=start_kb(call.from_user.id, 10))
 
 
-@router.callback_query(F.data.startswith('show_team_'))
+@router_handler.callback_query(F.data.startswith('show_team_'))
 async def show_team(call: CallbackQuery):
     team_id = int(call.data.replace('show_team_', ''))
-    team = get_table_team_member(team_id)
+    team = get_table_team(team_id)
     occ = 0
     hold = 0
     for member in team:
@@ -110,6 +104,7 @@ async def show_team(call: CallbackQuery):
     await call.message.edit_text(formatted_message, reply_markup=team_kb(call.from_user.id, team_id))
 
 
-@router.callback_query(F.data == 'Admin')
+@router_handler.callback_query(F.data == 'Admin')
 async def admin(call: CallbackQuery):
+    #await create_table()
     await call.message.edit_text('Я получил власть, которая и не снилась моему отцу!', reply_markup=admin_kb())

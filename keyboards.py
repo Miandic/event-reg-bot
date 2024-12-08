@@ -2,9 +2,9 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot_i import admins, banned
 
-def start_kb(user_telegram_id: int):
+def start_kb(user_telegram_id: int, teams: int):
     kb_list = []
-    for i in range(1, 11, 2):
+    for i in range(1, (teams + 1), 2):
         t1 = 'Команда ' + str(i)
         t2 = 'Команда ' + str(i+1)
         callback1 = 'show_team_'+ str(i)
@@ -17,13 +17,13 @@ def start_kb(user_telegram_id: int):
     
 def team_kb(user_telegram_id: int, team_id: int):
     kb_list = []
-    if user_telegram_id in banned or is_team_full(team_id):
+    if user_telegram_id in banned:
         kb_list.append([InlineKeyboardButton(text="Вернуться назад", callback_data='Home')])
         keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
         return keyboard
-    if user_in_team(user_telegram_id, team_id):
-        callback_friend = 'Friend_' + str(user_telegram_id)
-        kb_list.append([InlineKeyboardButton(text="Придержать место для друга", callback_data=callback_friend)])
+    #if user_in_team(user_telegram_id, team_id):
+    #    callback_friend = 'Friend_' + str(user_telegram_id)
+    #    kb_list.append([InlineKeyboardButton(text="Придержать место для друга", callback_data=callback_friend)])
     else:
         callback_self = 'Self_' + str(user_telegram_id)
         kb_list.append([InlineKeyboardButton(text="Присоедениться самому", callback_data=callback_self)])
