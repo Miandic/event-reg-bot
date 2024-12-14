@@ -4,16 +4,25 @@ from aiogram.types import Message, CallbackQuery
 from keyboards import *
 from sqlalchemy import Integer, String, Boolean, DateTime
 from bot_i import bot, dp, admins, banned, pg_manager
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.utils.chat_action import ChatActionSender
 
 router_handler = Router()
 
+class Form(StatesGroup):
+    team = State()
+    username = State()
+    name = State()
+    verify = State()
 
+
+dbt_name = 'users_ny'
 start_text = 'Привет!\nЭто бот для регистрации на новогодний квест 11 общежития'
-
 ban_text = 'Ты в бане! По вопросам разбана пиши администратору :p'
 
 
-async def create_table(table_name='users_ny'):
+async def create_table(table_name=dbt_name):
     async with pg_manager:
         columns = [
             {"name": "id", "type": Integer, "options": {"primary_key": True, "autoincrement": True}},
@@ -25,83 +34,86 @@ async def create_table(table_name='users_ny'):
         await pg_manager.create_table(table_name=table_name, columns=columns)
 
 
-async def insert_table_team_member(team: int, username: str, reserve: int, table_name='members_ny') -> int:
+async def insert_table_member(team_id: int, name: str, username: str, status: str, date: int, table_name=dbt_name):
     async with pg_manager:
-        data = await pg_manager.select_data(table_name, where_dict={'username': username})
-        for i in data:
-            if reserve == 0 and i.get('username') == username:
-                return 0
-        #data = await pg_manager.select_data(table_name)
-        user_info = []
-        if reserve > 3:
-            return 1
-        if reserve > 0:
-            for i in range(reserve):
-                user_info[i].append({'team': team, 'username': 'Booked', 'booked_by': username})
-        else:
-            user_info[i].append({'team': team, 'username': username, 'booked_by': 'None'})
-
-        await pg_manager.insert_data_with_update(table_name=table_name, records_data=user_info, conflict_column='id', update_on_conflict=True)
+        member_info = {'team_id': team_id, 'name': name, 'username': username, 'status': status, 'date': date}
+        await pg_manager.insert_data_with_update(table_name=table_name, records_data=member_info, conflict_column='id', update_on_conflict=True)
 
 
-async def get_table_team(team: int, table_name='members_ny'):
+async def get_table_members(table_name=dbt_name):
     async with pg_manager:
-        data = await pg_manager.select_data(table_name, where_dict={'team': team})
+        data = await pg_manager.select_data(table_name)
         return data
-    
-    
-async def is_team_full(team_id):
-    team = get_table_team(team_id)
-    total = 0
-    for member in team:
-        total += 1
-    if total < 8:   
-        return False
-    return True
-
-
-async def user_in_team(username, team_id):
-    team = get_table_team(team_id)
-    for member in team:
-        if member.get('username') == username:
-            return True
-    return False
 
 
 @router_handler.message(CommandStart())
-async def cmd_start(message: Message):
-    ans = start_text
+async def cmd_start(message: Message, state: FSMContext):
+    await state.clear()
+
+    msg = start_text
     if message.from_user.id in banned:
         await message.answer(ban_text, reply_markup=None)
+        return
     
-    if user_in_team(message.from_user.id, 0):
-        ans += 'Ты уже в команде'
-    await message.answer(ans, reply_markup=start_kb(message.from_user.id, 10))
+    data = await get_table_members()
+    for i in data:
+        if message.from_user.id == i.get('username'):
+            msg += '\n\nТы уже в команде.'
+            await message.answer(msg, reply_markup=start_kb(message.from_user.id, 7))
+            return
+
+    msg += '\n\nВыбирай команду и присоединяйся'
+    await message.answer(msg, reply_markup=start_kb(message.from_user.id, 7))
 
 
 @router_handler.callback_query(F.data == 'Home')
-async def cmd_start(call: CallbackQuery):
-    if call.from_user.id in banned:
-        await call.message.edit_text(ban_text, reply_markup=None)
-
-    await call.message.edit_text(start_text, reply_markup=start_kb(call.from_user.id, 10))
-
-
-@router_handler.callback_query(F.data.startswith('show_team_'))
-async def show_team(call: CallbackQuery):
-    team_id = int(call.data.replace('show_team_', ''))
-    team = get_table_team(team_id)
-    occ = 0
-    hold = 0
-    for member in team:
-        if member.get('booked_by') == 'None':
-            occ += 1
-        else:
-            hold += 1
-
-    formatted_message = 'Места: 8\n\nЗанято: ' + str(occ) + '\nНа удержании: ' + str(hold)
+async def cmd_start(call: CallbackQuery, state: FSMContext):
+    await state.clear()
     
-    await call.message.edit_text(formatted_message, reply_markup=team_kb(call.from_user.id, team_id))
+    msg = start_text
+    if call.message.from_user.id in banned:
+        await call.message.edit_text(ban_text, reply_markup=None)
+        return
+
+    data = await get_table_members()
+    for i in data:
+        if call.message.from_user.id == i.get('username'):
+            msg += '\n\nТы уже в команде.'
+            await call.message.edit_text(msg, reply_markup=start_kb(call.message.from_user.id, 7))
+            return
+
+    msg += '\n\nВыбирай команду и присоединяйся'
+    await call.message.edit_text(msg, reply_markup=start_kb(call.message.from_user.id, 7))
+
+    
+@router_handler.callback_query(F.data.startswith('show_team_'))
+async def show_team(call: CallbackQuery, state: FSMContext):
+    await state.set_state(Form.team)
+
+    team_id = int(call.data.replace('show_team_', ''))
+    data = await get_table_members()
+    occ = 0
+    for i in data:
+        if i.get('team_id') == str(team_id):
+            occ += 1
+    
+    formatted_message = f'Всего мест: 7 | Из них занято: {str(occ)}'
+    
+    await state.update_data(team=team_id)
+
+    await call.message.edit_text(formatted_message, reply_markup=team_kb(call.from_user.username, team_id))
+
+
+@router_handler.callback_query(F.data.startswith('Self_'))
+async def show_team(call: CallbackQuery, state: FSMContext):
+    team_id = int(call.data.replace('Self_', '')[0])
+    user_id = call.data.replace('Self_', '')[2:]
+    print(team_id)
+    print(user_id)
+
+    #formatted_message = f'Всего мест: 7 | Из них занято: {str(occ)}'
+    
+    await call.message.edit_text(f'Команда к которой хочет присоедениться: {team_id}, кто хочет: {user_id}', reply_markup=home_kb())
 
 
 @router_handler.callback_query(F.data == 'Admin')
