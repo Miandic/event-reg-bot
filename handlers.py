@@ -59,7 +59,7 @@ async def cmd_start(message: Message, state: FSMContext):
     data = await get_table_members()
     for i in data:
         if message.from_user.id == i.get('username') or message.from_user.username == i.get('username'):
-            msg += '\n\nТы уже в команде.'
+            msg += '\n\nТы уже в команде. Заходи в чат участников: https://t.me/+zg_wHbf3f5A0YjRi'
             await message.answer(msg, reply_markup=None)
             return
 
@@ -79,7 +79,7 @@ async def cmd_start(call: CallbackQuery, state: FSMContext):
     data = await get_table_members()
     for i in data:
         if call.message.from_user.id == i.get('username') or call.message.from_user.username == i.get('username'):
-            msg += '\n\nТы уже в команде.'
+            msg += '\n\nТы уже в команде. Заходи в чат участников: https://t.me/+zg_wHbf3f5A0YjRi'
             await call.message.edit_text(msg, reply_markup=None)
             return
 
