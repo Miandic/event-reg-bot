@@ -7,13 +7,14 @@ def start_kb(user_telegram_id: int, teams: int):
     i = 0
     while i < teams:
         if i + 1 < teams:
-            t1 = 'Команда ' + str(i+1)
-            t2 = 'Команда ' + str(i+2)
+            #result = f"{str} {19 + (i - 1) // 4}:{(i - 1) % 4 * 15:02}"
+            t1 = f'Команда {str(i+1)} || Старт {19 + (i) // 4}:{(i) % 4 * 15:02}'
+            t2 = f'Команда {str(i+2)} || Старт {19 + (i + 1) // 4}:{(i + 1) % 4 * 15:02}'
             callback1 = 'show_team_'+ str(i+1)
             callback2 = 'show_team_'+ str(i+2)
             kb_list.append([InlineKeyboardButton(text=t1, callback_data=callback1), InlineKeyboardButton(text=t2, callback_data=callback2)])
         else:
-            kb_list.append([InlineKeyboardButton(text=('Команда ' + str(i+1)), callback_data=('show_team_'+ str(i+1)))])
+            kb_list.append([InlineKeyboardButton(text=(f'Команда {str(i+1)} || Старт {19 + (i) // 4}:{(i) % 4 * 15:02}'), callback_data=('show_team_'+ str(i+1)))])
         i += 2
     if user_telegram_id in admins:
         kb_list.append([InlineKeyboardButton(text="⚙️ Админ панель", callback_data='Admin')])
