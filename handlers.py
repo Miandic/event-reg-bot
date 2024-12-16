@@ -158,7 +158,7 @@ async def start_questionnaire_process(call: CallbackQuery, state: FSMContext):
     for u in table:
         if u.get('username') == data.get('username'):
             idd = u.get('id')
-    await call.message.edit_text(f'Спасибо за регистрацию! Твой ID на мероприятии: {idd}', reply_markup=home_kb())
+    await call.message.edit_text(f'Спасибо за регистрацию! Твой ID на мероприятии: {idd}\n\nВступай в чат участников, там все подробности! t.me/+zg_wHbf3f5A0YjRi', reply_markup=home_kb())
     await state.clear()
 
 
