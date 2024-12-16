@@ -29,7 +29,7 @@ def team_kb(user_telegram_id: int, team_id: int):
         return keyboard
     else:
         callback_self = f'Self_{str(team_id)}_{str(user_telegram_id)}'
-        kb_list.append([InlineKeyboardButton(text="Присоедениться самому", callback_data=callback_self)])
+        kb_list.append([InlineKeyboardButton(text="Присоедениться", callback_data=callback_self)])
     
     kb_list.append([InlineKeyboardButton(text="Вернуться назад", callback_data='Home')])
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
@@ -38,6 +38,14 @@ def team_kb(user_telegram_id: int, team_id: int):
 
 def home_kb():
     return InlineKeyboardMarkup(inline_keyboard = [[InlineKeyboardButton(text="Вернуться назад", callback_data='Home')]])
+
+
+def is_valid_kb():
+    kb_list = [
+        [InlineKeyboardButton(text="✅Все верно", callback_data='correct'), InlineKeyboardButton(text="❌Заново", callback_data='incorrect')]
+    ]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
+    return keyboard
 
 
 def admin_kb():
