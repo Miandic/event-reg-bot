@@ -19,7 +19,7 @@ class Form(StatesGroup):
 
 
 dbt_name = 'users_ny'
-start_text = 'Привет!\nЭто бот для регистрации на новогодний квест 11 общежития'
+start_text = 'Привет!\nЭто бот для регистрации на новогодний квест 10 и 11 общежития'
 ban_text = 'Ты в бане! По вопросам разбана пиши администратору :p'
 
 
@@ -95,6 +95,11 @@ async def show_team(call: CallbackQuery, state: FSMContext):
     
     team_id = int(call.data.replace('show_team_', ''))
     data = await get_table_members()
+    for i in data:
+        if call.message.from_user.id == i.get('username') or call.message.from_user.username == i.get('username'):
+            msg = '\n\nТы уже в команде. Заходи в чат участников: https://t.me/+zg_wHbf3f5A0YjRi'
+            await call.message.edit_text(msg, reply_markup=None)
+            return
     occ = 0
     for i in data:
         print(i)
@@ -110,8 +115,11 @@ async def show_team(call: CallbackQuery, state: FSMContext):
     formatted_message += f'Всего мест: 7 | Из них занято: {str(occ)}'
 
     await state.update_data(team=team_id)
+    if not call.from_user.username:
+        await call.message.edit_text(formatted_message, reply_markup=team_kb(call.from_user.id, team_id))
+    else:
+        await call.message.edit_text(formatted_message, reply_markup=team_kb(call.from_user.username, team_id))
 
-    await call.message.edit_text(formatted_message, reply_markup=team_kb(call.from_user.username, team_id))
 
 
 @router_handler.callback_query(F.data.startswith('Self_'))
